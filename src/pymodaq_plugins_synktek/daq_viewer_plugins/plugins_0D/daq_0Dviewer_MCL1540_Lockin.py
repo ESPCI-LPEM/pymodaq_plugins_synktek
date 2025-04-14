@@ -174,19 +174,18 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
         kwargs: dict
             others optionals arguments
         """
-        self.controller.register_callback(self.callback, self.controller)
+        self.controller.data.L1.register_callback(self.callback, self.controller)
 
 
     def callback(self, lockin_channel: int, data: MCL_LIData_generalreadings, mcl: MCL):
         """optional asynchrone method called when the detector has finished its acquisition of data"""
 
-        
-        if f"L{lockin_channel}" == self.settings['lockinchannel']:
+        if f"L{lockin_channel + 1}" == self.settings['lockinchannel']:
             data_te = []
             for child in self.settings.child('outputchannel').children():
                 labels = child.value()['selected'][:]
-                subdata = [np.array([getattr(data, labels)]
-                        for label in labels)]
+                subdata = [np.array(getattr(data, label))
+                        for label in labels]
                 data_te.append(DataFromPlugins(
                         name=child.name(),
                         data=subdata,
@@ -202,7 +201,7 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
 
     def stop(self):
         """Stop the current grab hardware wise if necessary"""
-        self.controller.unregister_callback(self.callback)
+        self.controller.data.L1.unregister_callback(self.callback)
         self.emit_status(ThreadCommand('Update_Status', ['Stopped lockin acquistion.']))
         return ''
 
