@@ -2,6 +2,7 @@ from typing import NamedTuple
 
 import numpy as np
 
+from qtpy import QtWidgets
 from pyqtgraph.parametertree.parameterTypes.basetypes import GroupParameter
 from pyqtgraph.parametertree.parameterTypes import registerParameterType
 
@@ -15,7 +16,7 @@ from pymodaq.utils.data import DataFromPlugins
 from MCL import MCL
 
 LOCKIN_CHANNELS = ['L1', 'L2']
-OUTPUT_CHANNELS = ["x", "y", "r", "theta"]
+OUTPUT_CHANNELS = ["x", "y", "r", "thetadeg"]
 
 class MCL_LIData_generalreadings(NamedTuple):
     dt_s: float
@@ -106,6 +107,7 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
             {'title': 'Lockin channel', 'name': 'lockinchannel', 'type': 'list', 'limits': LOCKIN_CHANNELS},
             {'title': 'Output channel', 'name': 'outputchannel', 'type': 'outputchannel'}
         ]
+    live_mode_available = True
 
     def ini_attributes(self):
         self.controller: MCL = None
@@ -175,6 +177,7 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
             others optionals arguments
         """
         self.controller.data.L1.register_callback(self.callback, self.controller)
+        self.live = True
 
 
     def callback(self, lockin_channel: int, data: MCL_LIData_generalreadings, mcl: MCL):
@@ -184,7 +187,7 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
             data_te = []
             for child in self.settings.child('outputchannel').children():
                 labels = child.value()['selected'][:]
-                subdata = [np.array(getattr(data, label))
+                subdata = [np.array([getattr(data, label)[0]])
                         for label in labels]
                 data_te.append(DataFromPlugins(
                         name=child.name(),
@@ -202,6 +205,7 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
     def stop(self):
         """Stop the current grab hardware wise if necessary"""
         self.controller.data.L1.unregister_callback(self.callback)
+        self.live = False
         self.emit_status(ThreadCommand('Update_Status', ['Stopped lockin acquistion.']))
         return ''
 
