@@ -38,13 +38,13 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
     _controller_units: Union[str, List[str]] = 'Hz'
     # TODO  a single str (the same one is applied to all axes) or a list of str (as much as the number of axes)
     # TODO replace this by a value that is correct depending on your controller
-    _epsilon: Union[float, List[float]] = 0.01
+    _epsilon: Union[float, List[float]] = 0.1
     # TODO it could be a single float of a list of float (as much as the number of axes)
     # wether you use the new data style for actuator otherwise set this
     data_actuator_type = DataActuatorType.DataActuator
     # as  DataActuatorType.float  (or entirely remove the line)
 
-    params = [{'title': 'Ip address', 'name': 'ip', 'type': 'str'},
+    params = [{'title': 'Ip address', 'name': 'ip', 'type': 'str', 'value' : '172.22.11.2'}, 
               
               {'title': 'Lockin channel', 'name': 'lockinchannel',
                   'type': 'list', 'limits': LOCKIN_CHANNELS},
@@ -79,22 +79,7 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
         freq = DataActuator(data=self.controller.config.frequency_1.frequency)
         freq = self.get_position_with_scaling(freq)
         return freq
-
-
-    #def user_condition_to_reach_target(self) -> bool:
-        """ Implement a condition for exiting the polling mechanism and specifying that the
-        target value has been reached
-
-       Returns
-        -------
-        bool: if True, PyMoDAQ considers the target value has been reached
-        """
-        # TODO either delete this method if the usual polling is fine with you, but if need you can
-        #  add here some other condition to be fullfilled either a completely new one or
-        #  using or/and operations between the epsilon_bool and some other custom booleans
-        #  for a usage example see DAQ_Move_brushlessMotor from the Thorlabs plugin
-        return True
-
+    
     def close(self):
         """Terminate the communication protocol"""
         self.controller.disconnect()
@@ -115,12 +100,13 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
             # if the motors connected to the controller are of different type (mm, µm, nm, , etc...)
             # see BrushlessDCMotor from the thorlabs plugin for an exemple
 
-        elif param.name() == "voltage":
+        elif param.name() == 'voltage':
             self.controller.config.amplitude_1.amplitude = param.value()
-        
-        elif param.name() == "frequency":
-            self.controller.config.amplitude_1.amplitude = param.value()
-    
+            print('voltage equal to' ,self.controller.config.amplitude_1.amplitude)
+
+        elif param.name() == 'frequency':
+            self.controller.config.frequency_1.frequency = param.value()
+
         else:
             pass
 
@@ -147,6 +133,7 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
                 self.controller.connect(mcl_ip=self.settings['ip'])
                 info = "Connected to Lockin"
                 initialized = True
+
             except:
                 initialized = False
                 info = "connection failed"
@@ -166,12 +153,11 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
         self.target_value = value
         # apply scaling if the user specified one
         value = self.set_position_with_scaling(value)
-        # TODO for your custom plugin
-        raise NotImplemented  # when writing your own plugin remove this line
-        self.controller.your_method_to_set_an_absolute_value(
-            value.value())  # when writing your own plugin replace this line
+        
+        self.controller.config.frequency_1.frequency = value.value() # when writing your own plugin replace this line
+
         self.emit_status(ThreadCommand(
-            'Update_Status', ['Some info you want to log']))
+            'Update_Status', ['changed frequency of the Lockin !']))
 
     def move_rel(self, value: DataActuator):
         """ Move the actuator to the relative target actuator value defined by value
@@ -182,35 +168,25 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
         """
         value = self.check_bound(
             self.current_position + value) - self.current_position
+        
         self.target_value = value + self.current_position
         value = self.set_position_relative_with_scaling(value)
 
-        # TODO for your custom plugin
-        raise NotImplemented  # when writing your own plugin remove this line
-        self.controller.your_method_to_set_a_relative_value(
-            value.value())  # when writing your own plugin replace this line
+        self.controller.config.frequency_1.frequency = self.target_value  # when writing your own plugin replace this line
         self.emit_status(ThreadCommand(
-            'Update_Status', ['Some info you want to log']))
+            'Update_Status', ['relative frequency updated !']))
 
     def move_home(self):
         """Call the reference method of the controller"""
 
-        # TODO for your custom plugin
-        raise NotImplemented  # when writing your own plugin remove this line
-        # when writing your own plugin replace this line
-        self.controller.your_method_to_get_to_a_known_reference()
+        "set the Lockin to 16.7 Hz"
+        self.controller.config.frequency_1.frequency = 16.7
         self.emit_status(ThreadCommand(
-            'Update_Status', ['Some info you want to log']))
+            'Update_Status', ['Went back to reference frequency']))
 
     def stop_motion(self):
         """Stop the actuator and emits move_done signal"""
-
-        # TODO for your custom plugin
-        raise NotImplemented  # when writing your own plugin remove this line
-        # when writing your own plugin replace this line
-        self.controller.your_method_to_stop_positioning()
-        self.emit_status(ThreadCommand(
-            'Update_Status', ['Some info you want to log']))
+        pass
 
 
 if __name__ == '__main__':
