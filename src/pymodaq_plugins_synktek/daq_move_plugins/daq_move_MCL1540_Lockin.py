@@ -43,14 +43,12 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
     # wether you use the new data style for actuator otherwise set this
     data_actuator_type = DataActuatorType.DataActuator
     # as  DataActuatorType.float  (or entirely remove the line)
+    def __init__(self, parent=None, params_state=None):
+            super().__init__(parent, params_state)
+            self._enabled = False
 
-    params = [{'title': 'Ip address', 'name': 'ip', 'type': 'str', 'value' : '172.22.11.2'}, 
-              
-              {'title': 'Lockin channel', 'name': 'lockinchannel',
-                  'type': 'list', 'limits': LOCKIN_CHANNELS},
+    params = [{'title': 'Ip address', 'name': 'ip', 'type': 'str', 'value': '172.22.11.2'},
 
-              {'title': 'Input mode', 'name': 'imode', 'type': 'list',
-               'limits': ['Voltage']},
 
               {'title': 'Full-scale sensitivity', 'name': 'sensitivity',
                'type': 'list', 'limits': [10, 1, 0.1]},
@@ -60,6 +58,9 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
 
               {'title': 'Frequency (Hz)', 'name': 'frequency', 'type': 'float',
                'limits': [0, 30], 'value': 13},
+
+              {'title': 'Output enabled:', 'name': 'enabled',
+                  'type': 'led_push', 'value': False}
 
               ] + comon_parameters_fun(is_multiaxes, axis_names=_axis_names, epsilon=_epsilon)
     # _epsilon is the initial default value for the epsilon parameter allowing pymodaq to know if the controller reached
@@ -80,10 +81,22 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
         freq = self.get_position_with_scaling(freq)
         return freq
     
+
+    def enabled(self):
+        return self._enabled
+
+    def enable_source(self, enable=True):
+        self._enabled = enable
+        if enable:
+            self.controller.config.output_B.outputenabled = True
+        else:
+            self.controller.config.output_B.outputenabled = False
+
+        self.settings.child('enabled').setValue(enable)
+
     def close(self):
         """Terminate the communication protocol"""
         self.controller.disconnect()
-
 
     def commit_settings(self, param: Parameter):
         """Apply the consequences of a change of value in the detector settings
@@ -93,17 +106,15 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
         param: Parameter
             A given parameter (within detector_settings) whose value has been changed by the user
         """
-        # TODO for your custom plugin
-        if param.name() == 'axis':
-            self.axis_unit = self.controller.your_method_to_get_correct_axis_unit()
-            # do this only if you can and if the units are not known beforehand, for instance
-            # if the motors connected to the controller are of different type (mm, µm, nm, , etc...)
-            # see BrushlessDCMotor from the thorlabs plugin for an exemple
 
-        elif param.name() == 'voltage':
+        if param.name() == 'voltage':
             self.controller.config.amplitude_1.amplitude = param.value()
-            print('voltage equal to' ,self.controller.config.amplitude_1.amplitude)
+            print('voltage equal to', self.controller.config.amplitude_1.amplitude)
 
+
+        elif param.name() == 'enabled':
+            self.enable_source(param.value())
+            
         elif param.name() == 'frequency':
             self.controller.config.frequency_1.frequency = param.value()
 
@@ -129,7 +140,7 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
 
         if self.is_master:  # is needed when controller is master
             try:
-                self.controller = MCL()  
+                self.controller = MCL()
                 self.controller.connect(mcl_ip=self.settings['ip'])
                 info = "Connected to Lockin"
                 initialized = True
@@ -153,8 +164,9 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
         self.target_value = value
         # apply scaling if the user specified one
         value = self.set_position_with_scaling(value)
-        
-        self.controller.config.frequency_1.frequency = value.value() # when writing your own plugin replace this line
+
+        # when writing your own plugin replace this line
+        self.controller.config.frequency_1.frequency = value.value()
 
         self.emit_status(ThreadCommand(
             'Update_Status', ['changed frequency of the Lockin !']))
@@ -168,11 +180,12 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
         """
         value = self.check_bound(
             self.current_position + value) - self.current_position
-        
+
         self.target_value = value + self.current_position
         value = self.set_position_relative_with_scaling(value)
 
-        self.controller.config.frequency_1.frequency = self.target_value  # when writing your own plugin replace this line
+        # when writing your own plugin replace this line
+        self.controller.config.frequency_1.frequency = self.target_value
         self.emit_status(ThreadCommand(
             'Update_Status', ['relative frequency updated !']))
 
