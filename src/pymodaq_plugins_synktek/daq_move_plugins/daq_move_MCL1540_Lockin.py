@@ -42,29 +42,29 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
     # TODO it could be a single float of a list of float (as much as the number of axes)
     # wether you use the new data style for actuator otherwise set this
     data_actuator_type = DataActuatorType.DataActuator
-    # as  DataActuatorType.float  (or entirely remove the line)
+
     def __init__(self, parent=None, params_state=None):
-            super().__init__(parent, params_state)
-            self._enabled = False
+        super().__init__(parent, params_state)
+        self._enabled = False
 
     params = [{'title': 'Ip address', 'name': 'ip', 'type': 'str', 'value': '172.22.11.2'},
 
-
-              {'title': 'Full-scale sensitivity', 'name': 'sensitivity',
+              {'title': 'Full-scale sensitivity (not working now, set it on MCL program)', 'name': 'sensitivity',
                'type': 'list', 'limits': [10, 1, 0.1]},
 
-              {'title': 'Voltage (V)', 'name': 'voltage', 'type': 'float',
-               'limits': [0, 5], 'value': 1e-6},
+              {'title': 'Channel name', 'name': 'channel',
+               'type': 'list', 'limits': ['A', 'B', 'C']},
+
+              {'title': 'Voltage (Vrms)', 'name': 'voltage', 'type': 'float',
+               'limits': [0, 10], 'value': 1e-3},
 
               {'title': 'Frequency (Hz)', 'name': 'frequency', 'type': 'float',
-               'limits': [0, 30], 'value': 13},
+               'limits': [0, 30], 'value': 13.3},
 
               {'title': 'Output enabled:', 'name': 'enabled',
                   'type': 'led_push', 'value': False}
 
               ] + comon_parameters_fun(is_multiaxes, axis_names=_axis_names, epsilon=_epsilon)
-    # _epsilon is the initial default value for the epsilon parameter allowing pymodaq to know if the controller reached
-    # the target value. It is the developer responsibility to put here a meaningful value
 
     def ini_attributes(self):
         self.controller: MCL = None
@@ -80,19 +80,48 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
         freq = DataActuator(data=self.controller.config.frequency_1.frequency)
         freq = self.get_position_with_scaling(freq)
         return freq
-    
 
     def enabled(self):
         return self._enabled
 
     def enable_source(self, enable=True):
+
         self._enabled = enable
+
         if enable:
-            self.controller.config.output_B.outputenabled = True
+
+            if self.settings.child('channel').value() == 'A':
+                self.controller.config.output_A.outputenabled = True
+
+            elif self.settings.child('channel').value() == 'B':
+                self.controller.config.output_B.outputenabled = True
+
+            elif self.settings.child('channel').value() == 'C':
+                self.controller.config.output_C.outputenabled = True
+
         else:
-            self.controller.config.output_B.outputenabled = False
+            if self.settings.child('channel').value() == 'A':
+                self.controller.config.output_A.outputenabled = False
+
+            elif self.settings.child('channel').value() == 'B':
+                self.controller.config.output_B.outputenabled = False
+
+            elif self.settings.child('channel').value() == 'C':
+                self.controller.config.output_C.outputenabled = False
 
         self.settings.child('enabled').setValue(enable)
+
+    # to modify with the right function of the wrapper... Could not find it
+    def change_sensitivity(self, sens=1):
+
+        if self.settings.child('channel').value() == 'A':
+            self.controller.config.output_A.val.voltageoutputrange = sens
+
+        elif self.settings.child('channel').value() == 'B':
+            self.controller.config.output_B.val.voltageoutputrange = sens
+
+        elif self.settings.child('channel').value() == 'C':
+            self.controller.config.output_C.val.voltageoutputrange = sens
 
     def close(self):
         """Terminate the communication protocol"""
@@ -109,14 +138,23 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
 
         if param.name() == 'voltage':
             self.controller.config.amplitude_1.amplitude = param.value()
-            print('voltage equal to', self.controller.config.amplitude_1.amplitude)
-
+            print('voltage output equal to',
+                  self.controller.config.amplitude_1.amplitude)
 
         elif param.name() == 'enabled':
             self.enable_source(param.value())
-            
+            if param.value():
+                print('turned on the output')
+            else:
+                print('turned off the output')
+
         elif param.name() == 'frequency':
             self.controller.config.frequency_1.frequency = param.value()
+            print('initialized frequency to ',param.value(), ' (does not show on the actuator value)' )
+
+        # elif param.name() == 'sensitivity':
+        #    self.change_sensitivity(param.value())
+        #    print('changed sensitivity output')
 
         else:
             pass
