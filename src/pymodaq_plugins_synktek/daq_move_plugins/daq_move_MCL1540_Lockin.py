@@ -31,21 +31,18 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
     # TODO add your particular attributes here if any
 
     """
-    is_multiaxes = False  # TODO for your plugin set to True if this plugin is controlled for a multiaxis controller
+    is_multiaxes = True
     _axis_names: Union[List[str], Dict[str, int]] = [
-        'Axis1', 'Axis2']  # TODO for your plugin: complete the list
-    # TODO for your plugin: put the correct unit here, it could be
+        'Generator', 'Unknown']
     _controller_units: Union[str, List[str]] = 'Hz'
-    # TODO  a single str (the same one is applied to all axes) or a list of str (as much as the number of axes)
-    # TODO replace this by a value that is correct depending on your controller
-    _epsilon: Union[float, List[float]] = 0.1
-    # TODO it could be a single float of a list of float (as much as the number of axes)
-    # wether you use the new data style for actuator otherwise set this
-    data_actuator_type = DataActuatorType.DataActuator
 
-    def __init__(self, parent=None, params_state=None):
-        super().__init__(parent, params_state)
-        self._enabled = False
+    _epsilon: Union[float, List[float]] = 0.1
+
+    data_actuator_type = DataActuatorType.DataActuator
+    _enabled = False
+    #def __init__(self, parent=None, params_state=None):
+        #super().__init__(parent, params_state)
+        
 
     params = [{'title': 'Ip address', 'name': 'ip', 'type': 'str', 'value': '172.22.11.2'},
 
@@ -150,7 +147,8 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
 
         elif param.name() == 'frequency':
             self.controller.config.frequency_1.frequency = param.value()
-            print('initialized frequency to ',param.value(), ' (does not show on the actuator value)' )
+            print('initialized frequency to ', param.value(),
+                  ' (does not show on the actuator value)')
 
         # elif param.name() == 'sensitivity':
         #    self.change_sensitivity(param.value())
@@ -182,7 +180,7 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
                 self.controller.connect(mcl_ip=self.settings['ip'])
                 info = "Connected to Lockin"
                 initialized = True
-
+                
             except:
                 initialized = False
                 info = "connection failed"

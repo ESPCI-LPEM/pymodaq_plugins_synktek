@@ -137,34 +137,23 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
         initialized: bool
             False if initialization failed otherwise True
         """
+
+        self.ini_detector_init(slave_controller=controller)
+        
         try:
-            self.ini_detector_init(slave_controller=controller)
 
             if self.is_master:
                 self.controller = MCL()
                 self.controller.connect(self.settings['ip'])
 
-            self.dte_signal_temp.emit(
-                DataToExport(
-                    name='lockin',
-                    data=[DataFromPlugins(
-                        name='Mock1',
-                        data=[np.array([0]), np.array([0])],
-                        dim='Data0D',
-                        labels=['x', 'y']
-                    )]
-                )
-            )
-
-            # Library quit on failure and does not send signal. May be improved.
             info = "MCL1-540 initialized"
             initialized = True
-            return info, initialized
         
         except:
             info = "MCL1-540 not initialized"
             initialized = False
-            return info, initialized
+
+        return info, initialized
 
     def close(self):
         """Terminate the communication protocol"""
