@@ -105,7 +105,10 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
     params = comon_parameters+[
             {'title': 'Ip address', 'name': 'ip', 'type': 'str'},
             {'title': 'Lockin channel', 'name': 'lockinchannel', 'type': 'list', 'limits': LOCKIN_CHANNELS},
-            {'title': 'Output channel', 'name': 'outputchannel', 'type': 'outputchannel'}
+            {'title': 'Output channel', 'name': 'outputchannel', 'type': 'outputchannel'},
+            {'title': 'Channel name', 'name': 'channel',
+               'type': 'list', 'limits': ['A1', 'B1', 'C1','A2', 'B2', 'C2']},
+
         ]
     live_mode_available = True
 
@@ -120,6 +123,8 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
         param: Parameter
             A given parameter (within detector_settings) whose value has been changed by the user
         """
+
+     
         pass
 
     def ini_detector(self, controller=None):
@@ -179,10 +184,15 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
 
         if f"L{lockin_channel + 1}" == self.settings['lockinchannel']:
             data_te = []
+            D= {'A1':0,'A2':1,'B1':2,'B2':3,'C1':4,'C2':5}
+            i = D[self.settings.child('channel').value()]
+
             for child in self.settings.child('outputchannel').children():
                 labels = child.value()['selected'][:]
-                subdata = [np.array([getattr(data, label)[0]])
+
+                subdata = [np.array([getattr(data, label)[i]])
                         for label in labels]
+                
                 data_te.append(DataFromPlugins(
                         name=child.name(),
                         data=subdata,
