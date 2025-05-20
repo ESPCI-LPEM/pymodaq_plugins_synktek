@@ -40,9 +40,8 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
 
     data_actuator_type = DataActuatorType.DataActuator
     _enabled = False
-    #def __init__(self, parent=None, params_state=None):
-        #super().__init__(parent, params_state)
-        
+    # def __init__(self, parent=None, params_state=None):
+    # super().__init__(parent, params_state)
 
     params = [{'title': 'Ip address', 'name': 'ip', 'type': 'str', 'value': '172.22.11.2'},
 
@@ -84,28 +83,19 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
     def enable_source(self, enable=True):
 
         self._enabled = enable
+        channel = self.settings.child('channel').value()
+
+        output_att = f'output_{channel}'
+
+        output_obj = getattr(self.controller.config, output_att, None)
 
         if enable:
-
-            if self.settings.child('channel').value() == 'A':
-                self.controller.config.output_A.outputenabled = True
-
-            elif self.settings.child('channel').value() == 'B':
-                self.controller.config.output_B.outputenabled = True
-
-            elif self.settings.child('channel').value() == 'C':
-                self.controller.config.output_C.outputenabled = True
-
+            if output_obj:
+                output_obj.outputenabled = True
         else:
-            if self.settings.child('channel').value() == 'A':
-                self.controller.config.output_A.outputenabled = False
-
-            elif self.settings.child('channel').value() == 'B':
-                self.controller.config.output_B.outputenabled = False
-
-            elif self.settings.child('channel').value() == 'C':
-                self.controller.config.output_C.outputenabled = False
-
+            if output_obj:
+                output_obj.outputenabled = False
+           
         self.settings.child('enabled').setValue(enable)
 
     # to modify with the right function of the wrapper... Could not find it
@@ -180,7 +170,7 @@ class DAQ_Move_MCL1540_Lockin(DAQ_Move_base):
                 self.controller.connect(mcl_ip=self.settings['ip'])
                 info = "Connected to Lockin"
                 initialized = True
-                
+
             except:
                 initialized = False
                 info = "connection failed"

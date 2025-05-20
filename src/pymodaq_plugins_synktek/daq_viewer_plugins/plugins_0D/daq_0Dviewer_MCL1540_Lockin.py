@@ -184,11 +184,20 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
 
         if f"L{lockin_channel + 1}" == self.settings['lockinchannel']:
             data_te = []
+
             D= {'A1':0,'A2':1,'B1':2,'B2':3,'C1':4,'C2':5}
+
             i = D[self.settings.child('channel').value()]
 
             for child in self.settings.child('outputchannel').children():
                 labels = child.value()['selected'][:]
+
+                channel = self.settings.child('channel').value()
+                output_att = f'input_{channel}'
+                output_obj = getattr(self.controller.config, output_att, None)
+
+                output_obj.grounded = False
+
 
                 subdata = [np.array([getattr(data, label)[i]])
                         for label in labels]
@@ -209,6 +218,11 @@ class DAQ_0DViewer_MCL1540_Lockin(DAQ_Viewer_base):
     def stop(self):
         """Stop the current grab hardware wise if necessary"""
         self.controller.data.L1.unregister_callback(self.callback)
+        channel = self.settings.child('channel').value()
+        output_att = f'input_{channel}'
+        output_obj = getattr(self.controller.config, output_att, None)
+
+        output_obj.grounded = True
         self.live = False
         self.emit_status(ThreadCommand('Update_Status', ['Stopped lockin acquistion.']))
         return ''
